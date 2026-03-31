@@ -287,6 +287,7 @@ function getSonometerColor(runway) {
 
 function initSonometers(mapInstance) {
     SONOS.forEach(s => {
+
         const marker = L.circleMarker([s.lat, s.lon], {
             radius: 6,
             color: "gray",
@@ -295,11 +296,25 @@ function initSonometers(mapInstance) {
             weight: 1
         }).addTo(mapInstance);
 
+        const address = SONO_ADDRESSES[s.id] || "Adresse inconnue";
+
         marker.bindTooltip(s.id, { permanent: false });
 
-        sonometers[s.id] = { ...s, marker, status: "UNKNOWN" };
+        marker.on("click", () => {
+            marker.bindPopup(`
+                <b>${s.id}</b><br>
+                Adresse : ${address}
+            `).openPopup();
+        });
+
+        sonometers[s.id] = {
+            ...s,
+            marker,
+            status: "UNKNOWN"
+        };
     });
 }
+
 
 function updateSonometers(runway) {
     const color = getSonometerColor(runway);
