@@ -151,62 +151,69 @@ function drawRunway(runway) {
     const [lat1, lng1] = r.start;
     const [lat2, lng2] = r.end;
 
-    const heading = r.heading;
-    const width = r.width_m;
-    const halfW = width / 2;
+    // vecteur piste
+    const dx = lng2 - lng1;
+    const dy = lat2 - lat1;
 
-    const perpLeft = heading - 90;
-    const perpRight = heading + 90;
+    // vecteur perpendiculaire normalisé
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const px = -(dy / len);
+    const py = dx / len;
 
-    // Points latéraux aux extrémités
-    const p1L = offsetPoint(lat1, lng1, halfW, perpLeft);
-    const p1R = offsetPoint(lat1, lng1, halfW, perpRight);
-    const p2L = offsetPoint(lat2, lng2, halfW, perpLeft);
-    const p2R = offsetPoint(lat2, lng2, halfW, perpRight);
+    // largeur piste en degrés approximatifs
+    const meterToDeg = 1 / 111320;
+    const halfW = (r.width_m * meterToDeg) / 2;
 
-    // Rectangle de piste
-    const runwayPoly = L.polygon([p1L, p1R, p2R, p2L], {
+    // points latéraux
+    const p1L = [lat1 + py * halfW, lng1 + px * halfW];
+    const p1R = [lat1 - py * halfW, lng1 - px * halfW];
+    const p2L = [lat2 + py * halfW, lng2 + px * halfW];
+    const p2R = [lat2 - py * halfW, lng2 - px * halfW];
+
+    // rectangle piste
+    L.polygon([p1L, p1R, p2R, p2L], {
         color: "#222",
         weight: 1,
         fillColor: "#333",
         fillOpacity: 0.9
     }).addTo(runwayLayer);
 
-    // Centerline (un peu en retrait des extrémités)
-    const margin = 50; // m
-    const c1 = offsetPoint(lat1, lng1, margin, heading);
-    const c2 = offsetPoint(lat2, lng2, -margin, heading);
-    L.polyline([c1, c2], {
+    // centerline
+    L.polyline([r.start, r.end], {
         color: "#fff",
         weight: 2,
         dashArray: "8,8"
     }).addTo(runwayLayer);
 
-    // Blast pad côté start
-    if (r.blastPad_m > 0) {
-        const bp1 = offsetPoint(lat1, lng1, -r.blastPad_m, heading);
-        const bp1L = offsetPoint(bp1[0], bp1[1], halfW, perpLeft);
-        const bp1R = offsetPoint(bp1[0], bp1[1], halfW, perpRight);
-        L.polygon([bp1L, bp1R, p1R, p1L], {
-            color: "#444",
-            weight: 1,
-            fillColor: "#555",
-            fillOpacity: 0.8
-        }).addTo(runwayLayer);
-    }
+    // numéros de piste
+    const num1 = (r.heading / 10).toFixed(0).padStart(2, "0");
+    const num2 = (((r.heading + 180) % 360) / 10).toFixed(0).padStart(2, "0");
 
-    // Displaced threshold (si > 0)
-    if (r.displaced_m > 0) {
-        const dt = offsetPoint(lat1, lng1, r.displaced_m, heading);
-        const dtL = offsetPoint(dt[0], dt[1], halfW, perpLeft);
-        const dtR = offsetPoint(dt[0], dt[1], halfW, perpRight);
-        L.polygon([p1L, p1R, dtR, dtL], {
-            color: "#fff",
-            weight: 1,
-            fillColor: "#eee",
-            fillOpacity: 0.9
-        }).addTo(runwayLayer);
-    }
+    L.marker(r.start, {
+        icon: L.divIcon({
+            className: "runway-number",
+            html: num1
+        })
+    }).addTo(runwayLayer);
+
+    L.marker(r.end, {
+        icon: L.divIcon({
+            className: "runway-number",
+            html: num2
+        })
+    }).addTo(runwayLayer);
+
+    // QFU
+    const centerLat = (lat1 + lat2) / 2;
+    const centerLng = (lng1 + lng2) / 2;
+
+    L.marker([centerLat, centerLng], {
+        icon: L.divIcon({
+            className: "qfu-label",
+            html: `QFU ${num1}/${num2}`
+        })
+    }).addTo(runwayLayer);
+}
 
     // Numéros de piste
     const mid1 = offsetPoint(lat1, lng1, 150, heading);      // 150 m dans l'axe
